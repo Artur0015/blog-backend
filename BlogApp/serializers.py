@@ -1,19 +1,16 @@
 from rest_framework import serializers
-from .models import Article, Comment, User, MyUser
+from .models import Article, Comment, User
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import authenticate
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.exceptions import AuthenticationFailed, NotFound
+from django.core.paginator import Paginator, EmptyPage
 
+from .paginators import ArticlePaginatorForProfile
 from .utils import UsernameAlreadyExistsError
-
-
-def check_ownership(request, obj):
-    return request.user == obj.author
 
 
 class ArticleSerializer(serializers.ModelSerializer):
     author = serializers.CharField(source='author.username', read_only=True)
-    isOwner = serializers.SerializerMethodField('get_owner')
 
     class Meta:
         model = Article
@@ -31,13 +28,9 @@ class ArticleSerializer(serializers.ModelSerializer):
         author = self.context['request'].user
         return Article.objects.create(header=header, text=text, author=author)
 
-    def get_owner(self, obj):
-        return check_ownership(self.context['request'], obj)
-
 
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.CharField(source='author.username', read_only=True)
-    isOwner = serializers.SerializerMethodField('get_owner')
 
     class Meta:
         model = Comment
@@ -46,37 +39,63 @@ class CommentSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         text = validated_data['text']
         author = self.context['request'].user
-        for_article = Article.objects.get(pk=self.context['article_id'])
-        return Comment.objects.create(text=text, author=author, for_article=for_article)
+        article_id = self.context['request'].resolver_match.kwargs.get('id')
+        for_article = Article.objects.get(id=article_id)
+        comment = Comment.objects.create(text=text, author=author, for_article=for_article)
+        return comment
 
-    def get_owner(self, obj):
-        return check_ownership(self.context['request'], obj)
 
-
-class UserSerializer(serializers.ModelSerializer):
-    isAuthenticated = serializers.BooleanField(source='user.is_authenticated', read_only=True)
-    username = serializers.CharField(source='user.username')
+class BaseUserSerializer(serializers.ModelSerializer):
     photo = serializers.SerializerMethodField(read_only=True)
-    password = serializers.CharField(source='user.password', write_only=True)
 
+    def get_photo(self, user):
+        photo = user.photo.url
+        return 'http://127.0.0.1:8000' + photo
+
+
+class MyUserSerializer(BaseUserSerializer):
     class Meta:
-        model = MyUser
-        fields = ('username', 'isAuthenticated', 'photo', 'password')
+        model = User
+        fields = ('id', 'username', 'photo', 'password')
+        extra_kwargs = {
+            'password': {
+                'write_only': True
+            }
+        }
 
     def create(self, validated_data):
-        username = validated_data['user']['username']
-        password = validated_data['user']['password']
+        username = validated_data['username']
+        password = validated_data['password']
         try:
             User.objects.get_by_natural_key(username)
             raise UsernameAlreadyExistsError()
         except ObjectDoesNotExist:
             user = User.objects.create_user(username=username, password=password)
-            my_user = MyUser.objects.create(user=user)
-        return my_user
+        return user
 
-    def get_photo(self, user):
-        photo = user.avatar.url
-        return 'http://127.0.0.1:8000' + photo
+
+class UserProfileSerializer(BaseUserSerializer):
+    aboutMe = serializers.CharField(source='about_me')
+    articles = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'photo', 'aboutMe', 'articles')
+        extra_kwargs = {
+            'username': {'read_only': True}
+        }
+
+    def update(self, instance, validated_data):
+        instance.about_me = validated_data['about_me']
+        instance.save()
+        return instance
+
+    def get_articles(self, obj):
+        articles = obj.article_set.all()
+        paginator = ArticlePaginatorForProfile()
+        page = paginator.paginate_queryset(articles, self.context['request'])
+        serializer = ArticleSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data).data
 
 
 class LoginSerializer(serializers.Serializer):
@@ -93,13 +112,13 @@ class LoginSerializer(serializers.Serializer):
 
 
 class ImageUploadSerializer(serializers.Serializer):
-    avatar = serializers.ImageField()
+    photo = serializers.ImageField()
 
     def create(self, validated_data):
-        user = MyUser.objects.get(user=self.context['request'].user)
-        user.avatar = validated_data['avatar']
+        user = self.context['request'].user
+        user.photo = validated_data['photo']
         user.save()
         return user
 
     def to_representation(self, instance):
-        return {'avatar': 'http://127.0.0.1:8000' + instance.avatar.url}
+        return {'photo': 'http://127.0.0.1:8000' + instance.photo.url}

@@ -3,3 +3,5 @@
 /BlogApp/migrations
 .env
 /venv
+/BlogProject/mediaroot/
+

@@ -13,12 +13,12 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 from pathlib import Path
 import os
 from decouple import config
-
-BASE_DIR = Path( __file__ ).resolve().parent.parent
+import django.contrib.auth
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY')
 
-DEBUG = config('DEBUG',cast=bool)
+DEBUG = config('DEBUG', cast=bool)
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -96,6 +96,8 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
+
+AUTH_USER_MODEL = 'BlogApp.User'
 
 USE_I18N = True
 

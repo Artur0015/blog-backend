@@ -1,13 +1,14 @@
 from rest_framework import viewsets, status
 from rest_framework import generics
 from .serializers import *
-from .models import Article, Comment, MyUser
+from .models import Article, Comment
 from .paginators import ArticlePaginator
 from rest_framework.response import Response
 from django.contrib.auth import login, logout
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser
-from .utils import OwnerCanChangeAuthenticatedCanCreateOthersReadOnly
+from .permissions import OwnerCanChangeAuthenticatedCanCreateOthersReadOnly, IsOwnerOrReadOnly
+from rest_framework.exceptions import NotFound
 
 
 class ArticleViewSet(viewsets.ModelViewSet):
@@ -15,7 +16,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
     pagination_class = ArticlePaginator
     queryset = Article.objects.select_related('author').all()
     permission_classes = [OwnerCanChangeAuthenticatedCanCreateOthersReadOnly]
-    http_method_names = ['post', 'put', "get", "options", "head"]
+    http_method_names = ["post", "put", "get", "options", "head", "delete"]
 
     def get_queryset(self):
         return self.queryset.order_by('-id')
@@ -28,26 +29,16 @@ class CommentsView(generics.ListCreateAPIView):
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        article_id = kwargs.get('pk')
+        article_id = kwargs.get('id')
         return Response(self.get_serializer(queryset.filter(for_article=article_id), many=True).data)
-
-    def create(self, request, *args, **kwargs):
-        article_id = kwargs.get('pk')
-        serializer = self.get_serializer(context={'article_id': article_id, 'request': request}, data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status.HTTP_201_CREATED)
 
 
 class UserRegistartion(generics.CreateAPIView):
-    queryset = MyUser.objects.all()
-    serializer_class = UserSerializer
+    serializer_class = MyUserSerializer
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response({'detail': 'OK'}, status.HTTP_201_CREATED)
+        super().create(request, *args, **kwargs)
+        return Response(status=status.HTTP_201_CREATED)
 
 
 class UserLogin(viewsets.views.APIView):
@@ -58,22 +49,32 @@ class UserLogin(viewsets.views.APIView):
         login(request, user)
         if not serializer.validated_data['remember_me']:
             request.session.set_expiry(0)
-        my_user = MyUser.objects.get(user=user)
-        return Response(UserSerializer(my_user).data)
+        return Response(MyUserSerializer(user).data)
 
     def delete(self, request):
         logout(request)
-        return Response({'detail': 'OK'})
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class UserInfo(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = UserSerializer
-
+    serializer_class = MyUserSerializer
 
     def get_object(self):
-        user = self.request.user
-        return MyUser.objects.get(user=user)
+        return self.request.user
+
+
+class UserProfile(generics.RetrieveUpdateAPIView):
+    serializer_class = UserProfileSerializer
+    permission_classes = [IsOwnerOrReadOnly]
+
+    def get_object(self):
+        username = self.request.resolver_match.kwargs.get('username')
+        try:
+            user = User.objects.prefetch_related('article_set').get(username=username)
+        except ObjectDoesNotExist:
+            raise NotFound()
+        return user
 
 
 class UploadImage(generics.CreateAPIView):
