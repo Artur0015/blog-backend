@@ -16,7 +16,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
     pagination_class = ArticlePaginator
     queryset = Article.objects.select_related('author').all()
     permission_classes = [OwnerCanChangeAuthenticatedCanCreateOthersReadOnly]
-    http_method_names = ["post", "put", "get", "options", "head", "delete"]
+    http_method_names = ["post", "patch", "get", "options", "head", "delete"]
 
     def get_queryset(self):
         return self.queryset.order_by('-id')

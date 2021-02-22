@@ -2,9 +2,7 @@ from rest_framework import serializers
 from .models import Article, Comment, User
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import authenticate
-from rest_framework.exceptions import AuthenticationFailed, NotFound
-from django.core.paginator import Paginator, EmptyPage
-
+from rest_framework.exceptions import AuthenticationFailed
 from .paginators import ArticlePaginatorForProfile
 from .utils import UsernameAlreadyExistsError
 
@@ -17,8 +15,12 @@ class ArticleSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def update(self, instance, validated_data):
-        instance.text = validated_data.get('text')
-        instance.header = validated_data.get('header')
+        text = validated_data.get('text')
+        header = validated_data.get('header')
+        if text:
+            instance.text = text
+        if header:
+            instance.header = header
         instance.save()
         return instance
 
