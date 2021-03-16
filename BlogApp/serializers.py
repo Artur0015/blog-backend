@@ -1,18 +1,54 @@
 from rest_framework import serializers
 from .models import Article, Comment, User
-from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import authenticate
 from rest_framework.exceptions import AuthenticationFailed
-from .paginators import ArticlePaginatorForProfile
-from .utils import UsernameAlreadyExistsError
 
 
-class ArticleSerializer(serializers.ModelSerializer):
+class CommonArticleSerializer(serializers.ModelSerializer):
+    likes = serializers.IntegerField(source='likes__count', required=False)
+    dislikes = serializers.IntegerField(source='dislikes__count', required=False)
+    pubDate = serializers.SerializerMethodField()
     author = serializers.CharField(source='author.username', read_only=True)
+
+    def get_pubDate(self, article):
+        return article.pub_date.strftime('%d.%m.%Y %H:%M')
+
+
+class ArticleListSerializer(CommonArticleSerializer):
+    text = serializers.CharField(write_only=True)
 
     class Meta:
         model = Article
-        fields = '__all__'
+        exclude = ('pub_date',)
+
+    def create(self, validated_data):
+        header = validated_data['header']
+        text = validated_data['text']
+        author = self.context['request'].user
+        return Article.objects.create(header=header, text=text, author=author)
+
+
+class ArticleSerializerForProfile(CommonArticleSerializer):
+    author = None
+
+    class Meta:
+        model = Article
+        exclude = ('text', 'author', 'pub_date')
+
+
+class ArticleRetrieveSerializer(CommonArticleSerializer):
+    isLiked = serializers.SerializerMethodField()
+    isDisliked = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Article
+        exclude = ('pub_date',)
+
+    def get_isLiked(self, article):
+        return article.likes.filter(id=self.context['request'].user.id).exists()
+
+    def get_isDisliked(self, article):
+        return article.dislikes.filter(id=self.context['request'].user.id).exists()
 
     def update(self, instance, validated_data):
         text = validated_data.get('text')
@@ -24,28 +60,6 @@ class ArticleSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-    def create(self, validated_data):
-        header = validated_data['header']
-        text = validated_data['text']
-        author = self.context['request'].user
-        return Article.objects.create(header=header, text=text, author=author)
-
-
-class CommentSerializer(serializers.ModelSerializer):
-    author = serializers.CharField(source='author.username', read_only=True)
-
-    class Meta:
-        model = Comment
-        exclude = ['for_article', 'id']
-
-    def create(self, validated_data):
-        text = validated_data['text']
-        author = self.context['request'].user
-        article_id = self.context['request'].resolver_match.kwargs.get('id')
-        for_article = Article.objects.get(id=article_id)
-        comment = Comment.objects.create(text=text, author=author, for_article=for_article)
-        return comment
-
 
 class BaseUserSerializer(serializers.ModelSerializer):
     photo = serializers.SerializerMethodField(read_only=True)
@@ -55,7 +69,7 @@ class BaseUserSerializer(serializers.ModelSerializer):
         return 'http://127.0.0.1:8000' + photo
 
 
-class MyUserSerializer(BaseUserSerializer):
+class UserSerializer(BaseUserSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'photo', 'password')
@@ -68,36 +82,37 @@ class MyUserSerializer(BaseUserSerializer):
     def create(self, validated_data):
         username = validated_data['username']
         password = validated_data['password']
-        try:
-            User.objects.get_by_natural_key(username)
-            raise UsernameAlreadyExistsError()
-        except ObjectDoesNotExist:
-            user = User.objects.create_user(username=username, password=password)
+        user = User.objects.create_user(username, password)
         return user
 
 
 class UserProfileSerializer(BaseUserSerializer):
     aboutMe = serializers.CharField(source='about_me')
-    articles = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'photo', 'aboutMe', 'articles')
-        extra_kwargs = {
-            'username': {'read_only': True}
-        }
+        fields = ('id', 'username', 'photo', 'aboutMe',)
 
     def update(self, instance, validated_data):
         instance.about_me = validated_data['about_me']
         instance.save()
         return instance
 
-    def get_articles(self, obj):
-        articles = obj.article_set.all()
-        paginator = ArticlePaginatorForProfile()
-        page = paginator.paginate_queryset(articles, self.context['request'])
-        serializer = ArticleSerializer(page, many=True)
-        return paginator.get_paginated_response(serializer.data).data
+
+class CommentSerializer(serializers.ModelSerializer):
+    author = UserSerializer(required=False, read_only=True)
+
+    class Meta:
+        model = Comment
+        exclude = ['for_article']
+
+    def create(self, validated_data):
+        text = validated_data['text']
+        author = self.context['request'].user
+        article_id = self.context['article_id']
+        for_article = Article.objects.get(id=article_id)
+        comment = Comment.objects.create(text=text, author=author, for_article=for_article)
+        return comment
 
 
 class LoginSerializer(serializers.Serializer):

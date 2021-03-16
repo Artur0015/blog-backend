@@ -13,7 +13,8 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 from pathlib import Path
 import os
 from decouple import config
-import django.contrib.auth
+
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY')
@@ -109,9 +110,11 @@ STATIC_URL = '/static/'
 
 CORS_ALLOW_CREDENTIALS = True
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=lambda v: [s.strip() for s in v.split(',')])
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000'
+]
 
-CORS_ALLOW_ALL_ORIGINS = True
+ALLOWED_HOSTS = '*'
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'BlogProject/mediaroot')
 
