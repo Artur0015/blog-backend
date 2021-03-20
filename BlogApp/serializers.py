@@ -7,10 +7,10 @@ from rest_framework.exceptions import AuthenticationFailed
 class CommonArticleSerializer(serializers.ModelSerializer):
     likes = serializers.IntegerField(source='likes__count', required=False)
     dislikes = serializers.IntegerField(source='dislikes__count', required=False)
-    pubDate = serializers.SerializerMethodField()
+    pub_date = serializers.SerializerMethodField()
     author = serializers.CharField(source='author.username', read_only=True)
 
-    def get_pubDate(self, article):
+    def get_pub_date(self, article):
         return article.pub_date.strftime('%d.%m.%Y %H:%M')
 
 
@@ -19,7 +19,7 @@ class ArticleListSerializer(CommonArticleSerializer):
 
     class Meta:
         model = Article
-        exclude = ('pub_date',)
+        fields = '__all__'
 
     def create(self, validated_data):
         header = validated_data['header']
@@ -33,21 +33,21 @@ class ArticleSerializerForProfile(CommonArticleSerializer):
 
     class Meta:
         model = Article
-        exclude = ('text', 'author', 'pub_date')
+        exclude = ('text', 'author')
 
 
 class ArticleRetrieveSerializer(CommonArticleSerializer):
-    isLiked = serializers.SerializerMethodField()
-    isDisliked = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
+    is_disliked = serializers.SerializerMethodField()
 
     class Meta:
         model = Article
-        exclude = ('pub_date',)
+        fields = '__all__'
 
-    def get_isLiked(self, article):
+    def get_is_liked(self, article):
         return article.likes.filter(id=self.context['request'].user.id).exists()
 
-    def get_isDisliked(self, article):
+    def get_is_disliked(self, article):
         return article.dislikes.filter(id=self.context['request'].user.id).exists()
 
     def update(self, instance, validated_data):
@@ -61,15 +61,7 @@ class ArticleRetrieveSerializer(CommonArticleSerializer):
         return instance
 
 
-class BaseUserSerializer(serializers.ModelSerializer):
-    photo = serializers.SerializerMethodField(read_only=True)
-
-    def get_photo(self, user):
-        photo = user.photo.url
-        return 'http://127.0.0.1:8000' + photo
-
-
-class UserSerializer(BaseUserSerializer):
+class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'photo', 'password')
@@ -86,15 +78,15 @@ class UserSerializer(BaseUserSerializer):
         return user
 
 
-class UserProfileSerializer(BaseUserSerializer):
-    aboutMe = serializers.CharField(source='about_me')
-
+class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'username', 'photo', 'aboutMe',)
+        fields = ('id', 'username', 'photo', 'about_me')
 
     def update(self, instance, validated_data):
-        instance.about_me = validated_data['about_me']
+        about_me = validated_data.get('about_me')
+        if about_me:
+            instance.about_me = about_me
         instance.save()
         return instance
 
@@ -118,14 +110,14 @@ class CommentSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField()
-    rememberMe = serializers.BooleanField()
+    remember_me = serializers.BooleanField()
 
     def validate(self, attrs):
         user = authenticate(username=attrs['username'], password=attrs['password'])
         if not user:
             raise AuthenticationFailed({'detail': 'Invalid Credentials'})
 
-        return {"user": user, 'remember_me': attrs['rememberMe']}
+        return {"user": user, 'remember_me': attrs['remember_me']}
 
 
 class ImageUploadSerializer(serializers.Serializer):
@@ -136,6 +128,3 @@ class ImageUploadSerializer(serializers.Serializer):
         user.photo = validated_data['photo']
         user.save()
         return user
-
-    def to_representation(self, instance):
-        return {'photo': 'http://127.0.0.1:8000' + instance.photo.url}
