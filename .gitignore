@@ -1,7 +1,9 @@
-/mediaroot
 /test
-/BlogApp/migrations
 .env
 /venv
-/BlogProject/mediaroot/
+/.idea
+ArticlesApp/migrations
+CommentsApp/migrations
+UsersApp/migrations
+
 
