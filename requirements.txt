@@ -5,6 +5,7 @@ cloudinary==1.25.0
 Django==3.1.7
 django-cloudinary-storage==0.3.0
 django-cors-headers==3.7.0
+django-decouple==2.1
 djangorestframework==3.12.2
 djangorestframework-camel-case==1.2.0
 idna==2.10

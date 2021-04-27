@@ -1,5 +1,6 @@
+# not prod version
+
 from pathlib import Path
-import os
 from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,12 +20,11 @@ ALLOWED_HOSTS = [host for host in config('ALLOWED_HOSTS').split(', ')]
 INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.staticfiles',
     'cloudinary_storage',
 
     'cloudinary',
-    'rest_framework',
+    'rest_framework',  # off in prod
+    'rest_framework.authtoken',
     'corsheaders',
 
     'ArticlesApp',
@@ -37,32 +37,15 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'BlogProject.middlewares.PrintDbQueriesMiddleware'  # turn off in prod
+    'Blog.middlewares.PrintDbQueriesMiddleware'  # turn off in prod
 ]
 
-ROOT_URLCONF = 'BlogProject.urls'
+ROOT_URLCONF = 'Blog.urls'
 
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, "build")],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        },
-    },
-]
-
-WSGI_APPLICATION = 'BlogProject.wsgi.application'
+WSGI_APPLICATION = 'Blog.wsgi.application'
 
 DATABASES = {
     'default': {
@@ -99,7 +82,7 @@ USE_L10N = True
 
 USE_TZ = True
 
-STATIC_URL = '/static/'
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': config('CLOUD_NAME'),
@@ -112,13 +95,15 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': (
         'djangorestframework_camel_case.render.CamelCaseJSONRenderer',
-        'djangorestframework_camel_case.render.CamelCaseBrowsableAPIRenderer',
     ),
 
     'DEFAULT_PARSER_CLASSES': (
         'djangorestframework_camel_case.parser.CamelCaseFormParser',
         'djangorestframework_camel_case.parser.CamelCaseMultiPartParser',
         'djangorestframework_camel_case.parser.CamelCaseJSONParser',
+    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'Blog.authentication_backend.BearerTokenAuthentication',
     ),
     'DATETIME_FORMAT': '%Y %m %b %d %H %M'  # year month monthName day hour minute
 }

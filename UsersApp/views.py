@@ -1,14 +1,14 @@
-from django.contrib.auth import logout, login
 from django.db.models import Count
 from rest_framework import status
+from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.generics import RetrieveAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
-from BlogProject.api_views import UpdateWithoutMakingResponse, CreateWithoutMakingResponse
+from Blog.api_views import UpdateWithoutMakingResponse, CreateWithoutMakingResponse
 from .models import User
-from .serializers import UserSerializer, LoginSerializer, UserCreateSerializer, UserPartialSerializer
+from .serializers import UserSerializer, UserCreateSerializer, UserPartialSerializer
 
 
 class UserRegistration(CreateWithoutMakingResponse):
@@ -17,21 +17,6 @@ class UserRegistration(CreateWithoutMakingResponse):
     def create(self, request, *args, **kwargs):
         super().create(request, *args, **kwargs)
         return Response(status=status.HTTP_201_CREATED)
-
-
-class UserLoginView(APIView):
-    def post(self, request):
-        serializer = LoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        login(request, user)
-        if not request.data.get('remember_me'):
-            request.session.set_expiry(0)
-        return Response(UserPartialSerializer(user).data)
-
-    def delete(self, request):
-        logout(request)
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class UserInfoView(RetrieveAPIView):
@@ -53,3 +38,12 @@ class MyUserView(UpdateWithoutMakingResponse, RetrieveAPIView):
         if request.data.get('photo'):
             return Response({'photo': serializer_data.get('photo')}, status=status.HTTP_202_ACCEPTED)
         return Response(status=status.HTTP_202_ACCEPTED)
+
+
+class UserAuthToken(ObtainAuthToken):
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({'token': token.key, 'user': UserPartialSerializer(user).data})

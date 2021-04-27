@@ -1,7 +1,6 @@
-from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password as validate_user_password
-from rest_framework.exceptions import AuthenticationFailed, ValidationError
-from rest_framework.serializers import ModelSerializer, Serializer
+from rest_framework.exceptions import ValidationError
+from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
 
 from .models import User
@@ -41,14 +40,3 @@ class UserPartialSerializer(ModelSerializer):
         if User.objects.filter(username=username):
             raise ValidationError('User with such username already exists')
         return username
-
-
-class LoginSerializer(Serializer):
-    username = serializers.CharField()
-    password = serializers.CharField()
-
-    def validate(self, attrs):
-        user = authenticate(username=attrs['username'], password=attrs['password'])
-        if not user:
-            raise AuthenticationFailed()
-        return {'user': user}

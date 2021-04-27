@@ -3,8 +3,8 @@ from rest_framework.generics import DestroyAPIView, ListAPIView
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
-from BlogProject.api_views import UpdateWithoutMakingResponse, CreateWithoutMakingResponse
-from BlogProject.permissions import IsOwnerOrReadOnly
+from Blog.api_views import UpdateWithoutMakingResponse, CreateWithoutMakingResponse
+from Blog.permissions import IsOwnerOrReadOnly
 from .models import Comment
 from .serializers import CommentSerializer
 

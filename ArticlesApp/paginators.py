@@ -1,4 +1,4 @@
-from BlogProject.pagination import CustomPageNumberPagination, get_response
+from Blog.pagination import CustomPageNumberPagination, get_response
 
 
 class ArticlePaginator(CustomPageNumberPagination):

@@ -6,10 +6,10 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from django.db.models import Count
 from rest_framework.views import APIView
 
-from BlogProject.api_views import UpdateWithoutMakingResponse, CreateWithoutMakingResponse
+from Blog.api_views import UpdateWithoutMakingResponse, CreateWithoutMakingResponse
 from .models import Article
-from BlogProject.pagination import PaginateWithRawQueryset
-from BlogProject.permissions import IsOwnerOrReadOnly
+from Blog.pagination import PaginateWithRawQueryset
+from Blog.permissions import IsOwnerOrReadOnly
 from .paginators import ArticlePaginator
 
 from .serializers import ArticleRetrieveSerializer, ArticleListSerializer, ArticleSerializerForProfile

@@ -5,7 +5,6 @@ from ArticlesApp import views as articles_views
 
 urlpatterns = [
     path('', views.UserRegistration.as_view()),
-    path('login/', views.UserLoginView.as_view()),
     path('me/', views.MyUserView.as_view()),
     path('<str:username>/', views.UserInfoView.as_view()),
     path('<str:username>/articles/', articles_views.UserArticlesView.as_view()),

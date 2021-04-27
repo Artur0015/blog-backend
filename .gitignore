@@ -1,9 +1,13 @@
 /test
 .env
 /venv
-/.idea
 ArticlesApp/migrations
 CommentsApp/migrations
 UsersApp/migrations
+/.idea
+Blog/__pycache__
+ArticlesApp/__pycache__
+CommentsApp/__pycache__
+UsersApp/__pycache__
 
 
