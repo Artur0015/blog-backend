@@ -8,5 +8,5 @@ urlpatterns = [
     path('me/', views.MyUserView.as_view()),
     path('<str:username>/', views.UserInfoView.as_view()),
     path('<str:username>/articles/', articles_views.UserArticlesView.as_view()),
-
+    path('<str:username>/subscribers/', views.UserSubscribersView.as_view())
 ]

@@ -90,5 +90,19 @@ class UserArticlesView(PaginateWithRawQueryset, generics.ListAPIView):
 
     def get_queryset(self):
         return self.raw_queryset \
-            .annotate(Count('likes'), Count('dislikes'), count=Count('id')) \
-            .only('id', 'header', 'pub_date', 'photo').order_by('-id')
+            .annotate(Count('likes'), Count('dislikes')).only('id', 'header', 'pub_date', 'photo').order_by('-id')
+
+
+class SubscribedArticlesView(PaginateWithRawQueryset, generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ArticleListSerializer
+    pagination_class = ArticlePaginator
+
+    @property
+    def raw_queryset(self):
+        return Article.objects.filter(author__in=self.request.user.subscriptions.all())
+
+    def get_queryset(self):
+        return self.raw_queryset.select_related('author').annotate(Count('likes'), Count('dislikes')) \
+            .only('author__id', 'author__username', 'author__photo', 'id', 'header', 'pub_date', 'photo', ) \
+            .order_by('-id')

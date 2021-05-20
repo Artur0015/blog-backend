@@ -2,11 +2,13 @@ from django.db.models import Count
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.generics import RetrieveAPIView
+from rest_framework.generics import RetrieveAPIView, get_object_or_404, ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from Blog.api_views import UpdateWithoutMakingResponse, CreateWithoutMakingResponse
+from Blog.permissions import NotOwner
 from .models import User
 from .serializers import UserSerializer, UserCreateSerializer, UserPartialSerializer
 
@@ -22,8 +24,30 @@ class UserRegistration(CreateWithoutMakingResponse):
 class UserInfoView(RetrieveAPIView):
     serializer_class = UserSerializer
     lookup_field = 'username'
-    queryset = User.objects.all().annotate(Count('articles__likes'), Count('articles__dislikes')) \
-        .defer('articles__photo', 'articles__header', 'articles__pub_date', )
+    queryset = User.objects.annotate(Count('articles__likes'), Count('articles__dislikes'))
+
+
+class UserSubscribersView(APIView):
+    permission_classes = [IsAuthenticated, NotOwner]
+
+    def post(self, request, username):
+        user = get_object_or_404(User.objects.all().only('id'), username=username)
+        self.check_object_permissions(request, user)
+        user.subscribers.add(request.user)
+        return Response(status=status.HTTP_201_CREATED)
+
+    def delete(self, request, username):
+        user = get_object_or_404(User.objects.all().only('id'), username=username)
+        request.user.subscriptions.remove(user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class MyUserSubscriptionsView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserPartialSerializer
+
+    def get_queryset(self):
+        return self.request.user.subscriptions.only('id', 'photo', 'username', )
 
 
 class MyUserView(UpdateWithoutMakingResponse, RetrieveAPIView):

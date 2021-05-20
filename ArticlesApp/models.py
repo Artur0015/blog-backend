@@ -6,7 +6,7 @@ from UsersApp.models import User
 
 class Article(models.Model):
     photo = models.ImageField(blank=True)
-    header = models.CharField(max_length=100, validators=[MinLengthValidator(10)])
+    header = models.CharField(max_length=120, validators=[MinLengthValidator(10)])
     text = models.TextField(validators=[MinLengthValidator(300)])
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='articles')
     pub_date = models.DateTimeField(auto_now_add=True)

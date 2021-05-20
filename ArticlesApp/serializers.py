@@ -41,7 +41,13 @@ class ArticleRetrieveSerializer(CommonArticleSerializer):
         fields = '__all__'
 
     def get_is_liked(self, article):
-        return article.likes.filter(id=self.context['request'].user.id).exists()
+        user = self.context['request'].user
+        if not user.is_authenticated:
+            return False
+        return article.likes.filter(id=user.id).exists()
 
     def get_is_disliked(self, article):
-        return article.dislikes.filter(id=self.context['request'].user.id).exists()
+        user = self.context['request'].user
+        if not user.is_authenticated:
+            return False
+        return article.dislikes.filter(id=user.id).exists()

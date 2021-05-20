@@ -23,7 +23,6 @@ INSTALLED_APPS = [
     'cloudinary_storage',
 
     'cloudinary',
-    'rest_framework',  # off in prod
     'rest_framework.authtoken',
     'corsheaders',
 
@@ -105,5 +104,4 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'Blog.authentication_backend.BearerTokenAuthentication',
     ),
-    'DATETIME_FORMAT': '%Y %m %b %d %H %M'  # year month monthName day hour minute
 }

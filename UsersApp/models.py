@@ -36,6 +36,7 @@ class User(AbstractBaseUser):
     is_staff = models.BooleanField(default=False)
     photo = models.ImageField(blank=True, null=True)
     about_me = models.TextField(blank=True, default='', null=True)
+    subscriptions = models.ManyToManyField('self', related_name='subscribers', symmetrical=False)
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = []

@@ -1,8 +1,9 @@
 from rest_framework import status
-from rest_framework.generics import DestroyAPIView, ListAPIView
+from rest_framework.generics import DestroyAPIView, ListAPIView, get_object_or_404
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
+from ArticlesApp.models import Article
 from Blog.api_views import UpdateWithoutMakingResponse, CreateWithoutMakingResponse
 from Blog.permissions import IsOwnerOrReadOnly
 from .models import Comment
@@ -27,8 +28,8 @@ class CommentsListCreateView(CreateWithoutMakingResponse, ListAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        return Comment.objects.all().select_related('author').only('id', 'author_id', 'author__id').filter(
-            for_article__id=self.kwargs.get('pk')) \
+        article = get_object_or_404(Article.objects.all().only('id'), pk=self.kwargs.get('pk'))
+        return Comment.objects.all().select_related('author').filter(for_article=article) \
             .only('author__id', 'author__username', 'author__photo', 'text', 'pub_date')
 
     def get_serializer_context(self):
