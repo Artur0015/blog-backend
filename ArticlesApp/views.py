@@ -30,7 +30,7 @@ class ArticleListCreateView(PaginateWithRawQueryset, CreateWithoutMakingResponse
         return Article.objects.all()
 
     def get_queryset(self):
-        return self.raw_queryset.select_related('author').annotate(Count('likes'), Count('dislikes')) \
+        return self.raw_queryset.select_related('author').annotate(Count('likes', distinct=True), Count('dislikes', distinct=True)) \
             .only('author__username', 'author__photo', 'id', 'header', 'pub_date', 'photo').order_by('-id')
 
 
@@ -41,7 +41,7 @@ class ArticleUpdateDestroyRetrieveView(UpdateWithoutMakingResponse, RetrieveDest
     def get_queryset(self):
         queryset = Article.objects.all().only('id', 'author_id', 'author__id')
         if self.request.method == 'GET':
-            queryset = Article.objects.all().select_related('author').annotate(Count('likes'), Count('dislikes')) \
+            queryset = Article.objects.all().select_related('author').annotate(Count('likes', distinct=True), Count('dislikes', distinct=True)) \
                 .only('author__username', 'author__photo', 'id', 'header', 'pub_date', 'photo', 'text').order_by('-id')
         return queryset
 
@@ -90,7 +90,8 @@ class UserArticlesView(PaginateWithRawQueryset, generics.ListAPIView):
 
     def get_queryset(self):
         return self.raw_queryset \
-            .annotate(Count('likes'), Count('dislikes')).only('id', 'header', 'pub_date', 'photo').order_by('-id')
+            .annotate(Count('likes', distinct=True), Count('dislikes', distinct=True)).only('id', 'header', 'pub_date',
+                                                                                            'photo').order_by('-id')
 
 
 class SubscribedArticlesView(PaginateWithRawQueryset, generics.ListAPIView):

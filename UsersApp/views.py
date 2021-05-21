@@ -24,7 +24,8 @@ class UserRegistration(CreateWithoutMakingResponse):
 class UserInfoView(RetrieveAPIView):
     serializer_class = UserSerializer
     lookup_field = 'username'
-    queryset = User.objects.annotate(Count('articles__likes'), Count('articles__dislikes'))
+    queryset = User.objects.annotate(Count('articles__likes', distinct=True),
+                                     Count('articles__dislikes', distinct=True), Count('subscribers', distinct=True))
 
 
 class UserSubscribersView(APIView):

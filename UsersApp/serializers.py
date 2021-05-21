@@ -9,16 +9,13 @@ from .models import User
 class UserSerializer(ModelSerializer):
     times_liked = serializers.IntegerField(source='articles__likes__count')
     times_disliked = serializers.IntegerField(source='articles__dislikes__count')
-    subscribers = serializers.SerializerMethodField()
+    subscribers = serializers.IntegerField(source='subscribers__count')
     is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = ('id', 'username', 'photo', 'about_me', 'date_joined', 'times_liked', 'times_disliked', 'subscribers',
                   'is_subscribed')
-
-    def get_subscribers(self, user):
-        return user.subscribers.count()
 
     def get_is_subscribed(self, user):
         request_user = self.context['request'].user
